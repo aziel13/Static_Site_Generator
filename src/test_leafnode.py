@@ -14,10 +14,9 @@ class TestLeafNode(unittest.TestCase):
 
         self.assertEqual(node, node2)
 
-    def test_output(self):
+    def test_leaf_to_html_p(self):
+        node = LeafNode("p", "Hello, world!")
+        self.assertEqual(node.to_html(), "<p>Hello, world!</p>")
 
-        node = LeafNode("p", "This is a paragraph of text.")
-
-        self.assertEqual(node.to_html(), "<p>This is a paragraph of text.</p>")
 if __name__ == "__main__":
     unittest.main()
