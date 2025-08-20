@@ -3,6 +3,7 @@ import unittest
 from htmlnode import HTMLNode
 from textnode import TextNode, TextType
 from functions import *
+from blocks import BlockType
 
 
 class TestFunctions(unittest.TestCase):
@@ -195,3 +196,115 @@ class TestFunctions(unittest.TestCase):
             actual_output = text_to_textnodes(text)
 
             self.assertNotEqual(expected_output, actual_output)
+
+    def test_markdown_to_blocks(self):
+        md = """
+    This is **bolded** paragraph
+
+    This is another paragraph with _italic_ text and `code` here
+    This is the same paragraph on a new line
+
+    - This is a list
+    - with items
+    """
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                "- This is a list\n- with items",
+            ],
+        )
+
+
+    def test_markdown_paragraph(self):
+        markdown = "nothing special about this paragraph \n yes \n indeed"
+
+        expected_output = BlockType.PARAGRAPH
+        actual_output = block_to_block_type(markdown)
+        self.assertEqual(expected_output, actual_output)
+
+
+    def test_markdown_heading(self):
+        markdown = "##### heading text"
+
+        expected_output = BlockType.HEADING1
+        actual_output = block_to_block_type(markdown)
+        self.assertEqual(expected_output, actual_output)
+
+
+    def test_markdown_code_block(self):
+        markdown = "``` print(\"Hello World\") ```"
+
+        expected_output = BlockType.CODE
+        actual_output = block_to_block_type(markdown)
+        self.assertEqual(expected_output, actual_output)
+    
+
+    def test_markdown_qoute_block(self):
+        markdown = ">Wisdom comes from experience.\n>Experience is often a result of lack of wisdom.\n>Terry Pratchett"
+
+        expected_output = BlockType.QUOTE
+        actual_output = block_to_block_type(markdown)
+        self.assertEqual(expected_output, actual_output)
+
+
+    def test_markdown_unordered_list(self):
+        markdown = "- milk\n- cheese\n- Mushrooms"
+
+        expected_output = BlockType.UNORDEREDLIST
+        actual_output = block_to_block_type(markdown)
+        self.assertEqual(expected_output, actual_output)
+
+    def test_markdown_ordered_list(self):
+        markdown = ". ichi\n. ni\n. san"
+
+        expected_output = BlockType.ORDEREDLIST
+        actual_output = block_to_block_type(markdown)
+        self.assertEqual(expected_output, actual_output)
+
+    def test_paragraphs(self):
+        md = """
+        This is **bolded** paragraph
+        text in a p
+        tag here
+
+        This is another paragraph with _italic_ text and `code` here
+
+        """
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        html_expected = "<div><p>This is <b>bolded</b> paragraph\ntext in a p\ntag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>"
+
+        self.assertEqual(
+            html,
+            html_expected,
+        )
+
+    def test_codeblock(self):
+        md = """
+    ```
+    This is text that _should_ remain
+    the **same** even with inline stuff
+    ```
+    """
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        html_expected = "<div><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></div>"
+
+
+        print()
+        print()
+        print(f"html: {html}")
+        print()
+        print()
+        print(f"html: {html_expected}")
+
+
+        self.assertEqual(
+            html,
+            html_expected,
+        )

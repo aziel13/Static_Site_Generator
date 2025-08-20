@@ -88,6 +88,9 @@ class ParentNode(HTMLNode):
             case "body":
                 head = "<body>"
                 tail = "</body>"
+            case "html":
+                head = "<html>"
+                tail = "</html>"
             case _: pass
 
         html = "";

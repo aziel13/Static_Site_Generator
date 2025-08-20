@@ -30,6 +30,8 @@ class LeafNode(HTMLNode):
             case "div": html = f"<div>{self.value}</div>"
             case "em": html = f"<em>{self.value}</em>"
             case "i": html = f"<i>{self.value}</i>"
+            case "code": html = f"<code>{self.value}</code>"
+
             case None: html = self.value
             case _: pass
 
