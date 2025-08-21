@@ -539,8 +539,8 @@ def generate_page(base_path, from_path, template_path, dest_path):
     #print(title)
     pattern = "{{ Title }}"
     pattern1 = "{{ Content }}"
-    pattern2 = "href=\"/"
-    pattern3 = "src=\"/"
+    pattern2 = "href=\"\\"
+    pattern3 = "src=\"\\"
 
     base_href = f"href=\{base_path}"
     base_src = f"src=\{base_path}"
