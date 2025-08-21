@@ -21,7 +21,7 @@ class LeafNode(HTMLNode):
             case "h6": html = f"<h6>{self.value}</h6>"
             case "a": html = f"<a href=\"{self.props["href"]}\">{self.value}</a>"
             case "p": html = f"<p>{self.value}</p>"
-            case "img": html = f"<img src=\"{self.props["image"]['src']}\">"
+            case "img": html = f"<img alt =\"{self.props["alt"]}\" src=\"{self.props['src']}\">"
             case "b": html = f"<b>{self.value}</b>"
             case "li": html = f"<li>{self.value}</li>"
             case "ul": html = f"<ul>{self.value}</ul>"

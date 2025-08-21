@@ -3,6 +3,7 @@ import shutil
 from site import abs_paths
 
 from click import clear
+from rich import markdown
 
 from textnode import TextNode, TextType
 from leafnode import LeafNode
@@ -32,45 +33,32 @@ def text_node_to_html_node(text_node):
         case TextType.CODE:
             lnode = LeafNode("code", text_node.text)
         case TextType.LINK:
-            lnode = LeafNode("a", text_node.text)
+            lnode = LeafNode("a", text_node.text, {"href": text_node.url})
         case TextType.IMAGE:
-            lnode = LeafNode("img", text_node.text)
+            lnode = LeafNode("img", "", {"src": text_node.url, "alt": text_node.text})
         case __:
             raise Exception("Unknown text type")
 
     return lnode
 
 def split_nodes_delimiter(old_nodes, delimiter, text_type):
-
     new_nodes = []
-
-
     for old_node in old_nodes:
-
-        text = old_node.text
-        oldtype = old_node.text_type
-
-        split_node = text.split(delimiter)
-        new_node = []
-
-        if delimiter in old_node.text and len(split_node) > 1:
-
-            delimited_text = ""
-            for i in range(0, len(split_node)):
-                if i == 0:
-                    new_nodes.append(TextNode(split_node[i], oldtype))
-                elif i > 0 and i < len(split_node) - 1:
-
-                    delimited_text +=  split_node[i].replace(delimiter, "")
-
-                else:
-                    new_nodes.append(TextNode(delimited_text, text_type))
-
-                    new_nodes.append(TextNode(split_node[i], oldtype))
-
-        else:
+        if old_node.text_type != TextType.TEXT:
             new_nodes.append(old_node)
-
+            continue
+        split_nodes = []
+        sections = old_node.text.split(delimiter)
+        if len(sections) % 2 == 0:
+            raise ValueError("invalid markdown, formatted section not closed")
+        for i in range(len(sections)):
+            if sections[i] == "":
+                continue
+            if i % 2 == 0:
+                split_nodes.append(TextNode(sections[i], TextType.TEXT))
+            else:
+                split_nodes.append(TextNode(sections[i], text_type))
+        new_nodes.extend(split_nodes)
     return new_nodes
 
 def split_nodes_image(old_nodes):
@@ -133,7 +121,7 @@ def split_nodes_link(old_nodes):
 
     for old_node in old_nodes:
 
-        text = old_node.text
+        text = f" {old_node.text}"
 
         new_text = text
 
@@ -162,9 +150,9 @@ def split_nodes_link(old_nodes):
             #inject delimiter to split on that seperates images from regular text
             #new_text = text.replace(pattern, "*^*^*[").replace(pattern2, ")*^*^*")
 
-           # print(f"new_text = {new_text}")
+            #print(f"new_text = {new_text}")
 
-            split_text = new_text.split("*^*")
+            split_text = new_text[1:-1].split("*^*")
 
             for str in split_text:
 
@@ -248,12 +236,12 @@ def text_to_textnodes(text):
     new_nodes = split_nodes_image(new_nodes)
 
     new_nodes = split_nodes_link(new_nodes)
-    '''
-    print("[")
-    for node in new_nodes:
-        print(f"{node}")
-    print("]")
-    '''
+
+    # print("[")
+    # for node in new_nodes:
+    #     print(f"{node}")
+    # print("]")
+
     return new_nodes
 
 def markdown_to_blocks(markdown):
@@ -299,20 +287,6 @@ def block_to_block_type (markdown):
 
     if len(markdown) > 0:
 
-
-        for block in split_list:
-
-            if len(block) != 0:
-
-                if block[0] != ">":
-                    is_qoute = False
-
-                if block[0:2] != "- ":
-                    is_unordered = False
-
-                if block[0:2] != ". ":
-                    is_ordered = False
-
         beginning = markdown[0:3]
         ending = markdown[len(markdown)-3:len(markdown)]
 
@@ -334,13 +308,27 @@ def block_to_block_type (markdown):
         elif beginning == "```" and ending == "```":
             block_type = BlockType.CODE
 
-        elif is_qoute:
+        elif markdown.startswith(">"):
             block_type = BlockType.QUOTE
 
-        elif is_unordered:
+            for line in split_list:
+                if not line.startswith(f">"):
+                    return BlockType.PARAGRAPH
+
+        elif markdown.startswith("- "):
             block_type = BlockType.UNORDEREDLIST
 
-        elif is_ordered:
+            for line in split_list:
+                if not line.startswith(f"- "):
+                    return BlockType.PARAGRAPH
+
+        elif markdown.startswith("1. "):
+            i = 1
+            for line in split_list:
+                if not line.startswith(f"{i}. "):
+                    return BlockType.PARAGRAPH
+                i += 1
+
             block_type = BlockType.ORDEREDLIST
 
         else:
@@ -355,8 +343,8 @@ def text_to_children(text):
 
     htmlchildnodes = text_nodes_to_html_nodes(text_to_textnodes(text))
 
-   # for node in htmlchildnodes:
-     #   print(node.to_html())
+    # for node in htmlchildnodes:
+    #     print(node.to_html())
 
 
     return htmlchildnodes
@@ -370,7 +358,51 @@ def text_block_to_html_parent_node(text_block):
 
         text_block = text_block.replace("```\n", "").replace("```", "")
 
+
+
         child_nodes = text_nodes_to_html_nodes([TextNode(text_block, TextType.TEXT)])
+    elif text_block_type == BlockType.ORDEREDLIST:
+
+        child_nodes = []
+
+        lines = text_block.split("\n")
+        i = 1
+
+        for line in lines:
+            pattern = f"{i}. "
+            line = re.sub(pattern, "", line)
+
+            child = text_to_children(line)
+            pnode = ParentNode("li",child)
+            child_nodes.append(pnode)
+
+            i += 1
+
+    elif text_block_type == BlockType.UNORDEREDLIST:
+
+        child_nodes = []
+
+        lines = text_block.split("\n")
+
+        i = 1
+
+        for line in lines:
+            pattern = f"- "
+            line = re.sub(pattern, "", line)
+            child = text_to_children(line)
+            pnode = ParentNode("li",child)
+            child_nodes.append(pnode)
+
+            i += 1
+    elif text_block_type == BlockType.QUOTE:
+        child_nodes = []
+
+
+        pattern = f">"
+        line = re.sub(pattern, "", text_block).strip()
+        child_nodes = text_to_children(line)
+
+
     else:
         child_nodes = text_to_children(text_block)
 
@@ -444,18 +476,96 @@ def copy_from_static_to_public(working_directory= ".", source_directory="static"
             except OSError as e:
                 print(f"Error deleting {file_path}: {e}")
 
+        if os.path.isdir(file_path):
+            try:
+                os.remove(file_path)
+                print(f"Deleted: {file_path}")
+            except OSError as e:
+                print(f"Error deleting {file_path}: {e}")
+
     # copy files from source directory to dest directory
 
     # Iterate over all items in the source directory
-    for item in os.listdir(source_directory):
-        source_path = os.path.join(source_directory, item)
-        destination_path = os.path.join(dest_directory, item)
+    for item in os.listdir(abs_source_dir):
+        source_path = os.path.join(abs_source_dir, item)
+        destination_path = os.path.join(abs_dest_dir, item)
 
         # Check if the item is a file before copying
         if os.path.isfile(source_path):
             shutil.copy2(source_path, destination_path)
             print(f"Copied '{item}' to '{dest_directory}'")
         else:
-            print(f"Skipping '{item}' (not a file)")
 
+            new_source_directory = f"{source_directory}/{item}"
+            new_destination_directory = f"{dest_directory}/{item}"
 
+            os.makedirs(new_destination_directory, exist_ok=True)
+
+            print(f"copying '{item}' as its a directory, not a file)")
+            copy_from_static_to_public(working_directory=".", source_directory=new_source_directory, dest_directory=new_destination_directory)
+
+def extract_title(markdown):
+
+    if "#" in markdown:
+
+        markdown_split = markdown.split("\n")
+
+        for text in markdown_split:
+            if "#" in text and text.count("#") == 1:
+                return f"<h1>{text.replace("#","").strip()}</h1>"
+
+    raise Exception("No title found")
+
+def generate_page(from_path, template_path, dest_path):
+
+    print(f"Generating page: {from_path} to {dest_path} using {template_path}")
+
+    markdown = None
+    template = None
+
+    with open(from_path, "r") as markdown_file:
+        markdown = markdown_file.read()
+        markdown_file.close()
+
+    with open(template_path, "r") as template_file:
+        template = template_file.read()
+        template_file.close()
+
+    html = markdown_to_html_node(markdown).to_html()
+
+    title = extract_title(markdown)
+
+    #print(html)
+    #print(title)
+    pattern = "{{ Title }}"
+    pattern1 = "{{ Content }}"
+
+    template = re.sub(pattern,title, template)
+    template = re.sub(pattern1, html, template)
+    #template.replace('{{ Title }}', f"<title>{title}</title>")
+    #template.replace("{{ Content }}", html)
+
+    #print(template)
+
+    with open(dest_path, "w") as output_file:
+        output_file.write(template)
+        output_file.close()
+
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+
+    for filename in os.listdir(dir_path_content):
+        file_path = os.path.join(dir_path_content, filename)
+        dir_path = os.path.join(dest_dir_path, filename)
+        if file_path.endswith(".md") and os.path.isfile(file_path):
+
+            new_dir_path = dir_path.replace(".md", ".html")
+
+            generate_page(file_path, template_path, new_dir_path)
+
+        elif os.path.isdir(file_path):
+
+            new_dest_dir_path =  os.path.join(dest_dir_path, filename)
+
+            os.makedirs(new_dest_dir_path, exist_ok=True)
+
+            generate_pages_recursive(file_path, template_path, new_dest_dir_path)

@@ -34,7 +34,9 @@ class TestFunctions(unittest.TestCase):
 
         result = [
                 TextNode("This is a ", TextType.TEXT),
-                TextNode("nested bold word", TextType.BOLD),
+                TextNode("nested ", TextType.BOLD),
+                TextNode("bold", TextType.TEXT),
+                TextNode(" word", TextType.BOLD),
                 TextNode(".", TextType.TEXT),
                 ]
 
@@ -61,6 +63,24 @@ class TestFunctions(unittest.TestCase):
         ]
 
         self.assertNotEqual(split_nodes_delimiter([node], "**", TextType.BOLD), result)
+
+
+    def test_split_nodes_two_same_delimiter(self):
+        node = TextNode( "An elaborate pantheon of deities (the `Valar` and `Maiar`)", TextType.TEXT)
+
+        ExpectedResult = [
+            TextNode("An elaborate pantheon of deities (the ", TextType.TEXT),
+            TextNode("Valar", TextType.CODE),
+            TextNode(" and ", TextType.TEXT),
+            TextNode("Maiar", TextType.CODE),
+            TextNode(")", TextType.TEXT)
+        ]
+
+        ActualResult = split_nodes_delimiter([node], "`", TextType.CODE)
+
+        print("ActualResult",ActualResult)
+
+        self.assertEqual(ActualResult, ExpectedResult)
 
     def test_extract_markdown_images(self):
         matches = extract_markdown_images(
@@ -152,7 +172,7 @@ class TestFunctions(unittest.TestCase):
                 TextNode(
                     "second link", TextType.LINK, "https://i.imgur.com/3elNhQu.png"
                 ),
-                TextNode(" and a ![image](https://i.imgur.com/zjjcJKZ.png) ", TextType.TEXT),
+                TextNode(" and a ![image](https://i.imgur.com/zjjcJKZ.png)", TextType.TEXT),
             ],
             new_nodes,
         )
@@ -177,25 +197,25 @@ class TestFunctions(unittest.TestCase):
 
         self.assertListEqual(expected_output, actual_output)
 
-        def test_text_to_text_nodes(self):
-            text = "This is text with an _**italic**_ word and a `code block` and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"
+    def test_text_to_text_nodes(self):
+        text = "This is text with an _**italic**_ word and a `code block` and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"
 
-            expected_output = [
-                TextNode("This is ", TextType.TEXT),
-                TextNode("text", TextType.BOLD),
-                TextNode(" with an ", TextType.TEXT),
-                TextNode("italic", TextType.ITALIC),
-                TextNode(" word and a ", TextType.TEXT),
-                TextNode("code block", TextType.CODE),
-                TextNode(" and an ", TextType.TEXT),
-                TextNode("obi wan image", TextType.IMAGE, "https://i.imgur.com/fJRm4Vk.jpeg"),
-                TextNode(" and a ", TextType.TEXT),
-                TextNode("link", TextType.LINK, "https://boot.dev"),
-            ]
+        expected_output = [
+            TextNode("This is ", TextType.TEXT),
+            TextNode("text", TextType.BOLD),
+            TextNode(" with an ", TextType.TEXT),
+            TextNode("italic", TextType.ITALIC),
+            TextNode(" word and a ", TextType.TEXT),
+            TextNode("code block", TextType.CODE),
+            TextNode(" and an ", TextType.TEXT),
+            TextNode("obi wan image", TextType.IMAGE, "https://i.imgur.com/fJRm4Vk.jpeg"),
+            TextNode(" and a ", TextType.TEXT),
+            TextNode("link", TextType.LINK, "https://boot.dev"),
+        ]
 
-            actual_output = text_to_textnodes(text)
+        actual_output = text_to_textnodes(text)
 
-            self.assertNotEqual(expected_output, actual_output)
+        self.assertNotEqual(expected_output, actual_output)
 
     def test_markdown_to_blocks(self):
         md = """
@@ -240,7 +260,7 @@ class TestFunctions(unittest.TestCase):
         expected_output = BlockType.CODE
         actual_output = block_to_block_type(markdown)
         self.assertEqual(expected_output, actual_output)
-    
+
 
     def test_markdown_qoute_block(self):
         markdown = ">Wisdom comes from experience.\n>Experience is often a result of lack of wisdom.\n>Terry Pratchett"
@@ -258,7 +278,7 @@ class TestFunctions(unittest.TestCase):
         self.assertEqual(expected_output, actual_output)
 
     def test_markdown_ordered_list(self):
-        markdown = ". ichi\n. ni\n. san"
+        markdown = "1. ichi\n2. ni\n3. san"
 
         expected_output = BlockType.ORDEREDLIST
         actual_output = block_to_block_type(markdown)
@@ -308,3 +328,46 @@ class TestFunctions(unittest.TestCase):
             html,
             html_expected,
         )
+
+    def test_extract_title(self):
+        md = """
+            # title
+            This is text that _should_ remain
+            the **same** even with inline stuff
+            """
+
+        expected_title = "<h1>title</h1>"
+        actual_title = extract_title(md)
+
+        self.assertEqual(
+            expected_title,
+            actual_title,
+        )
+
+
+    def test_extract_no_title(self):
+        md = """
+            This is text that _should_ remain
+            the **same** even with inline stuff
+            """
+        expected_exception = "No title found"
+
+        try:
+            actual_title = extract_title(md)
+        except Exception:
+            self.assertRaises( Exception, expected_exception)
+
+
+    def test_extract_no_h1_title(self):
+        md = """
+            ## title
+            This is text that _should_ remain
+            the **same** even with inline stuff
+            """
+
+        expected_exception = "No title found"
+        try:
+            actual_title = extract_title(md)
+        except Exception:
+            self.assertRaises(Exception, expected_exception)
+
