@@ -6,7 +6,7 @@ from functions import copy_from_static_to_docs,generate_pages_recursive
 
 def main():
 
-    basepath = sys.argv[0]
+    basepath = sys.argv[1]
 
     copy_from_static_to_docs()
 
