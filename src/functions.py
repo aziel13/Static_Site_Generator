@@ -450,7 +450,7 @@ def markdown_to_html_node(markdown):
 
     return html_parent_node
 
-def copy_from_static_to_public(working_directory= ".", source_directory="static", dest_directory="public"):
+def copy_from_static_to_docs(working_directory=".", source_directory="static", dest_directory="docs"):
 
     abs_working_dir = os.path.abspath(working_directory)
     abs_source_dir = os.path.abspath(os.path.join(working_directory, source_directory))
@@ -502,7 +502,7 @@ def copy_from_static_to_public(working_directory= ".", source_directory="static"
             os.makedirs(new_destination_directory, exist_ok=True)
 
             print(f"copying '{item}' as its a directory, not a file)")
-            copy_from_static_to_public(working_directory=".", source_directory=new_source_directory, dest_directory=new_destination_directory)
+            copy_from_static_to_docs(working_directory=".", source_directory=new_source_directory, dest_directory=new_destination_directory)
 
 def extract_title(markdown):
 
@@ -516,7 +516,7 @@ def extract_title(markdown):
 
     raise Exception("No title found")
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(base_path, from_path, template_path, dest_path):
 
     print(f"Generating page: {from_path} to {dest_path} using {template_path}")
 
@@ -539,19 +539,27 @@ def generate_page(from_path, template_path, dest_path):
     #print(title)
     pattern = "{{ Title }}"
     pattern1 = "{{ Content }}"
+    pattern2 = "href=\"/"
+    pattern3 = "src=\"/"
 
-    template = re.sub(pattern,title, template)
-    template = re.sub(pattern1, html, template)
+    base_href = f"href=\{base_path}"
+    base_src = f"src=\{base_path}"
+
+    template = template.replace(pattern, title)
+    template = template.replace(pattern1, html)
     #template.replace('{{ Title }}', f"<title>{title}</title>")
     #template.replace("{{ Content }}", html)
 
     #print(template)
 
+    template = template.replace(pattern2, base_href)
+    template = template.replace(pattern3, base_src)
+
     with open(dest_path, "w") as output_file:
         output_file.write(template)
         output_file.close()
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(base_path,dir_path_content, template_path, dest_dir_path):
 
     for filename in os.listdir(dir_path_content):
         file_path = os.path.join(dir_path_content, filename)
@@ -560,7 +568,7 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
 
             new_dir_path = dir_path.replace(".md", ".html")
 
-            generate_page(file_path, template_path, new_dir_path)
+            generate_page(base_path,file_path, template_path, new_dir_path)
 
         elif os.path.isdir(file_path):
 
@@ -568,4 +576,4 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
 
             os.makedirs(new_dest_dir_path, exist_ok=True)
 
-            generate_pages_recursive(file_path, template_path, new_dest_dir_path)
+            generate_pages_recursive(base_path, file_path, template_path, new_dest_dir_path)

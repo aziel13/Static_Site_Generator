@@ -1,15 +1,18 @@
 from textnode import TextNode
 from textnode import TextType
+import sys
 
-from functions import copy_from_static_to_public,generate_pages_recursive
+from functions import copy_from_static_to_docs,generate_pages_recursive
 
 def main():
-    text_node = TextNode("This is some anchor text", "link", "https://www.boot.dev")
-    print(text_node)
 
-    copy_from_static_to_public()
+    basepath = sys.argv[0]
 
-    generate_pages_recursive("content", "template.html", "public")
+    copy_from_static_to_docs()
+
+    generate_pages_recursive(basepath,"content", "template.html", "docs")
+
+
 
 if __name__ == '__main__':
     main()
